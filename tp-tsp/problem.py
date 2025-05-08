@@ -211,3 +211,11 @@ class TSP(OptProblem):
         state.append(0)  # agregar a 0 como inicio del tour
         state.insert(0, 0)  # agregar a 0 como fin del tour
         return state
+
+    def successors(self, state: list[int]) -> list[tuple[int, list[int]]]:
+        """Retorna los sucesores de un estado, como pares (acción, estado sucesor)."""
+        successors = []
+        for action in self.actions(state):
+            new_state = self.result(state, action)
+            successors.append((action, new_state))
+        return successors
