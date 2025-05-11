@@ -61,11 +61,11 @@ class HillClimbing(LocalSearch):
         while True:
 
             # Buscamos la acción que genera el sucesor con mayor valor objetivo
-            act, succ_val = problem.max_action(actual)
+            accion, valor_sucesor = problem.max_action(actual)
 
             # Retornar si estamos en un maximo local:
             # el valor objetivo del sucesor es menor o igual al del estado actual
-            if succ_val <= value:
+            if valor_sucesor <= value:
 
                 self.tour = actual
                 self.value = value
@@ -74,8 +74,8 @@ class HillClimbing(LocalSearch):
                 return
 
             # Sino, nos movemos al sucesor
-            actual = problem.result(actual, act)
-            value = succ_val
+            actual = problem.result(actual, accion)
+            value = valor_sucesor
             self.niters += 1
 
 
@@ -99,13 +99,13 @@ class HillClimbingReset(LocalSearch):
             value = problem.obj_val(actual)
 
             while True:
-                act, succ_val = problem.max_action(actual)
+                accion, valor_sucesor = problem.max_action(actual)
 
-                if succ_val <= value:
+                if valor_sucesor <= value:
                     break
 
-                actual = problem.result(actual, act)
-                value = succ_val
+                actual = problem.result(actual, accion)
+                value = valor_sucesor
                 total_iters += 1
 
             if value > mejor_valor:
@@ -126,54 +126,54 @@ class Tabu(LocalSearch):
     """Algoritmo de búsqueda tabú."""
     def solve(self, problem, max_stops=5500):
         stops = 0
-        actual_state = problem.init
-        best_state = actual_state
-        best_value = problem.obj_val(actual_state)
+        actual = problem.init
+        mejor_estado = actual
+        mejor_valor = problem.obj_val(actual)
         tabu = []
         tabu_len = 20
         start = time()
 
         while stops <= max_stops:
             # Generar acciones posibles y filtrar las que están en la lista tabú
-            candidates = []
-            for a in problem.actions(actual_state):
+            candidatos = []
+            for a in problem.actions(actual):
                 if a not in tabu:
-                    candidates.append(a)
+                    candidatos.append(a)
 
             # Si no hay candidatos posibles, terminamos
-            if not candidates:
+            if not candidatos:
                 break
 
             # Buscar la mejor acción entre las candidatas
-            max_val = float('-inf')
-            best_act = None
-            for a in candidates:
-                next_state = problem.result(actual_state, a)
-                val = problem.obj_val(next_state)
-                if val > max_val:
-                    max_val = val
-                    best_act = a
+            maximo_valor = float('-inf')
+            mejor_accion = None
+            for a in candidatos:
+                next_estado = problem.result(actual, a)
+                val = problem.obj_val(next_estado)
+                if val > maximo_valor:
+                    maximo_valor = val
+                    mejor_accion = a
 
-            act = best_act
-            succ_val = max_val
-            next_state = problem.result(actual_state, act)
+            accion = mejor_accion
+            valor_sucesor = maximo_valor
+            next_estado = problem.result(actual, accion)
 
             self.niters += 1
 
-            if succ_val > best_value:
-                best_value = succ_val
-                best_state = next_state
+            if valor_sucesor > mejor_valor:
+                mejor_valor = valor_sucesor
+                mejor_estado = next_estado
                 stops = 0
             else:
                 stops += 1
 
-            tabu.append(act)
+            tabu.append(accion)
             if len(tabu) > tabu_len:
                 tabu.pop(0)
 
-            actual_state = next_state
+            actual = next_estado
 
         end = time()
-        self.tour = best_state
-        self.value = best_value
+        self.tour = mejor_estado
+        self.value = mejor_valor
         self.time = end - start
