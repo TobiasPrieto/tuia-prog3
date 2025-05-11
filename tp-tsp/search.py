@@ -18,7 +18,7 @@ No viene implementado, se debe completar.
 from __future__ import annotations
 from time import time
 from problem import OptProblem
-from collections import deque
+
 
 class LocalSearch:
     """Clase que representa un algoritmo de busqueda local general."""
@@ -82,7 +82,7 @@ class HillClimbing(LocalSearch):
 class HillClimbingReset(LocalSearch):
     """Ascensión de colinas con reinicio aleatorio."""
 
-    def __init__(self, n_reinicios=10):
+    def __init__(self, n_reinicios=15):
         super().__init__()
         self.n_reinicios = n_reinicios
 
@@ -95,7 +95,7 @@ class HillClimbingReset(LocalSearch):
         total_iters = 0
 
         for _ in range(self.n_reinicios):
-            actual = problem.random_reset()  # Distinto a problem.init
+            actual = problem.random_reset()  
             value = problem.obj_val(actual)
 
             while True:
@@ -121,58 +121,59 @@ class HillClimbingReset(LocalSearch):
 
 
 
+
 class Tabu(LocalSearch):
-    """Clase que representa el algoritmo de búsqueda con lista tabú."""
-
-    def __init__(self, tabu_size=10, max_iters=1000):
-        """Construye una instancia del algoritmo de búsqueda tabú."""
-        super().__init__()
-        self.tabu_size = tabu_size
-        self.max_iters = max_iters
-
-    def solve(self, problem: OptProblem):
-        """Resuelve un problema de optimización usando búsqueda tabú."""
-
+    """Algoritmo de búsqueda tabú."""
+    def solve(self, problem, max_stops=5500):
+        stops = 0
+        actual_state = problem.init
+        best_state = actual_state
+        best_value = problem.obj_val(actual_state)
+        tabu = []
+        tabu_len = 20
         start = time()
 
-        actual = problem.init
-        best = actual
+        while stops <= max_stops:
+            # Generar acciones posibles y filtrar las que están en la lista tabú
+            candidates = []
+            for a in problem.actions(actual_state):
+                if a not in tabu:
+                    candidates.append(a)
 
-        value = problem.obj_val(actual)
-        best_value = value
-
-        tabu_list = deque(maxlen=self.tabu_size)
-
-        for _ in range(self.max_iters):
-            self.niters += 1
-
-            # Generamos todos los sucesores y sus valores
-            successors = problem.successors(actual)
-            filtered = []
-
-            for act, succ in successors:
-                if succ not in tabu_list:
-                    succ_val = problem.obj_val(succ)
-                    filtered.append((succ_val, act, succ))
-
-            # Si todos los sucesores están en la lista tabú, terminamos
-            if not filtered:
+            # Si no hay candidatos posibles, terminamos
+            if not candidates:
                 break
 
-            # Elegimos el mejor sucesor no tabú
-            filtered.sort(reverse=True, key=lambda x: x[0])
-            best_succ_val, best_act, best_succ = filtered[0]
+            # Buscar la mejor acción entre las candidatas
+            max_val = float('-inf')
+            best_act = None
+            for a in candidates:
+                next_state = problem.result(actual_state, a)
+                val = problem.obj_val(next_state)
+                if val > max_val:
+                    max_val = val
+                    best_act = a
 
-            # Nos movemos
-            actual = best_succ
-            value = best_succ_val
-            tabu_list.append(actual)
+            act = best_act
+            succ_val = max_val
+            next_state = problem.result(actual_state, act)
 
-            # Actualizamos el mejor global
-            if value > best_value:
-                best = actual
-                best_value = value
+            self.niters += 1
 
-        self.tour = best
+            if succ_val > best_value:
+                best_value = succ_val
+                best_state = next_state
+                stops = 0
+            else:
+                stops += 1
+
+            tabu.append(act)
+            if len(tabu) > tabu_len:
+                tabu.pop(0)
+
+            actual_state = next_state
+
+        end = time()
+        self.tour = best_state
         self.value = best_value
-        self.time = time() - start
+        self.time = end - start
